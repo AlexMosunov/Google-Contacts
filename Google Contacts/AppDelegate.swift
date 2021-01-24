@@ -6,15 +6,58 @@
 //
 
 import UIKit
+import GoogleSignIn
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
 
-
-
+    var signInCallBack: (() -> ())?
+    var networkManager = NetworkManager()
+    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Initialize sign-in
+          GIDSignIn.sharedInstance().clientID = "525765886907-lc7t1n41djild1sskqtld77csd8aa262.apps.googleusercontent.com"
+          GIDSignIn.sharedInstance().delegate = self
+          GIDSignIn.sharedInstance().scopes = ["https://www.google.com/m8/feeds", "https://www.googleapis.com/auth/user.organization.read"]
         return true
+    }
+    
+    func sign(_ signIn: GIDSignIn!, didSignInFor user: GIDGoogleUser!,
+              withError error: Error!) {
+      if let error = error {
+        if (error as NSError).code == GIDSignInErrorCode.hasNoAuthInKeychain.rawValue {
+          print("The user has not signed in before or they have since signed out.")
+        } else {
+          print("Error - \(error.localizedDescription)")
+        }
+        return
+      }
+
+        if signInCallBack != nil {
+            signInCallBack!()
+        }
+        
+        if let accessToken = GIDSignIn.sharedInstance().currentUser.authentication.accessToken  {
+            networkManager.getUserContacts(token: accessToken)
+        }
+    }
+    
+    func sign(_ signIn: GIDSignIn!, didDisconnectWith user: GIDGoogleUser!,
+              withError error: Error!) {
+        // Perform any operations when the user disconnects from app here.
+      // ...
+        print("DISCONNECTED!")
+    }
+    
+    
+    @available(iOS 9.0, *)
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any]) -> Bool {
+      return GIDSignIn.sharedInstance().handle(url)
+    }
+    
+    func application(_ application: UIApplication,
+                     open url: URL, sourceApplication: String?, annotation: Any) -> Bool {
+      return GIDSignIn.sharedInstance().handle(url)
     }
 
     // MARK: UISceneSession Lifecycle
